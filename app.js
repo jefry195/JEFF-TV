@@ -82,6 +82,7 @@ const S = {
   streamStatus: JSON.parse(sessionStorage.getItem('jftv_status') || '{}'),
   favorites: [],
   history: [],
+  countriesList: [],  // searchable country list source
   aspectRatio: 'default',
   customPlaylistLoaded: false,
   checking: false,
@@ -109,6 +110,7 @@ function initDOM() {
     playlistTabs:   q('playlist-tabs'),
     countrySec:     q('country-sec'),
     countrySelect:  q('country-select'),
+    countrySearch:  q('country-search'),
     catSec:         q('cat-sec'),
     catList:        q('category-list'),
     sfAll:          q('sf-all'),
@@ -550,17 +552,49 @@ function buildCountryFilter() {
     if (b[0]==='ID') return 1;
     return b[1]-a[1];
   });
-  D.countrySelect.innerHTML = '<option value="">🌍 Semua Negara</option>';
-  sorted.forEach(([code, count]) => {
-    const o = document.createElement('option');
-    o.value = code;
-    o.textContent = `${flag(code)} ${CNAMES[code]||code} (${count})`;
-    D.countrySelect.appendChild(o);
-  });
+  
+  S.countriesList = sorted.map(([code, count]) => ({
+    code,
+    count,
+    name: CNAMES[code] || code
+  }));
+
+  // Reset search box on rebuild
+  if (D.countrySearch) D.countrySearch.value = '';
+  renderCountryOptions('');
+
   // Auto-select Indonesia
   if (cnt['ID']) {
     D.countrySelect.value = 'ID';
     S.country = 'ID';
+  }
+}
+
+function renderCountryOptions(q) {
+  const select = D.countrySelect;
+  if (!select) return;
+
+  const val = S.country; // Simpan nilai terpilih sebelumnya
+  select.innerHTML = '<option value="">🌍 Semua Negara</option>';
+
+  const query = q.toLowerCase().trim();
+  const filtered = S.countriesList.filter(c => {
+    if (!query) return true;
+    return c.name.toLowerCase().includes(query) || c.code.toLowerCase().includes(query);
+  });
+
+  filtered.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.code;
+    o.textContent = `${flag(c.code)} ${c.name} (${c.count})`;
+    select.appendChild(o);
+  });
+
+  // Pulihkan nilai terpilih jika masih ada di daftar hasil pencarian
+  if (filtered.some(c => c.code === val)) {
+    select.value = val;
+  } else if (!val) {
+    select.value = '';
   }
 }
 
@@ -1518,9 +1552,13 @@ function setupEvents() {
       S.mode = tab.dataset.mode;
       S.category=''; S.categoryM3U='';
 
-      // Clear search query when changing tabs
+      // Clear search query & country search when changing tabs
       D.searchInput.value=''; S.query='';
       D.searchClear.classList.add('hidden');
+      if (D.countrySearch) {
+        D.countrySearch.value = '';
+        renderCountryOptions('');
+      }
 
       // Show/hide sections based on mode
       D.customPlaylistSec.classList.add('hidden');
@@ -1588,6 +1626,10 @@ function setupEvents() {
   });
 
   // Country
+  D.countrySearch?.addEventListener('input', e => {
+    renderCountryOptions(e.target.value);
+  });
+
   D.countrySelect?.addEventListener('change', async () => {
     S.country = D.countrySelect.value;
     if (S.mode === 'country') {
@@ -1600,6 +1642,10 @@ function setupEvents() {
           t.classList.toggle('active', t.dataset.mode === 'api');
         });
         D.catSec.style.display='';
+        if (D.countrySearch) {
+          D.countrySearch.value = '';
+          renderCountryOptions('');
+        }
         // Restore country to select value, here it is empty
         await reloadMode();
       }
