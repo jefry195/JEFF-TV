@@ -1802,8 +1802,23 @@ function setupEvents() {
 
   D.fsBtn?.addEventListener('click', () => {
     const el = D.video.closest('.player-box');
-    if (!document.fullscreenElement) el?.requestFullscreen?.();
-    else document.exitFullscreen?.();
+    if (!document.fullscreenElement) {
+      el?.requestFullscreen?.().then(() => {
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(() => {});
+        }
+      }).catch(() => {});
+    } else {
+      document.exitFullscreen?.();
+    }
+  });
+
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+      if (screen.orientation && screen.orientation.unlock) {
+        screen.orientation.unlock();
+      }
+    }
   });
 
   // Video events
