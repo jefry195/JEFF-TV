@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JeffTV — Nonton TV Online Gratis</title>
+  <meta name="description" content="JeffTV — Ribuan saluran TV dari seluruh dunia. Streaming gratis langsung di browser, tanpa aplikasi." />
+  <meta property="og:title" content="JeffTV — Nonton TV Online Gratis" />
+  <meta property="og:description" content="Ribuan saluran TV dari seluruh dunia, gratis dan tanpa aplikasi." />
+  <meta name="theme-color" content="#0a0a0f" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="apple-touch-icon" href="favicon.png" />
+  <!-- SVG Favicon fallback -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a0a0f'/><defs><linearGradient id='g' x1='0' y1='0' x2='100' y2='100' gradientUnits='userSpaceOnUse'><stop offset='0' stop-color='%23e63946'/><stop offset='1' stop-color='%23f4a261'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='url(%23g)' opacity='0.15'/><text x='50' y='72' font-family='Arial Black' font-size='68' font-weight='900' text-anchor='middle' fill='url(%23g)'>J</text></svg>" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- HLS.js stable -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     SPLASH SCREEN
+═══════════════════════════════════════════ -->
+<div id="splash-screen">
+  <div class="splash-logo">
+    <div class="splash-icon">
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="80" height="80" rx="20" fill="url(#sg)"/>
+        <rect x="16" y="22" width="48" height="28" rx="4" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        <polygon points="34,29 34,43 46,36" fill="white"/>
+        <rect x="28" y="52" width="24" height="3" rx="1.5" fill="rgba(255,255,255,0.4)"/>
+        <rect x="34" y="56" width="12" height="5" rx="2" fill="rgba(255,255,255,0.25)"/>
+        <defs>
+          <linearGradient id="sg" x1="0" y1="0" x2="80" y2="80">
+            <stop offset="0%" stop-color="#e63946"/>
+            <stop offset="100%" stop-color="#f4a261"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+    <h1>Jeff<span>TV</span></h1>
+  </div>
+  <div id="splash-status">Menghubungkan ke server IPTV...</div>
+  <div class="splash-loader">
+    <div class="splash-bar"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     APP
+═══════════════════════════════════════════ -->
+<div id="app" class="hidden">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="40" height="40" rx="10" fill="url(#lg)"/>
+          <rect x="8" y="11" width="24" height="14" rx="2" fill="rgba(255,255,255,0.1)"/>
+          <polygon points="17,14.5 17,21.5 23,18" fill="white"/>
+          <rect x="14" y="27" width="12" height="2" rx="1" fill="rgba(255,255,255,0.4)"/>
+          <defs>
+            <linearGradient id="lg" x1="0" y1="0" x2="40" y2="40">
+              <stop offset="0%" stop-color="#e63946"/>
+              <stop offset="100%" stop-color="#f4a261"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span>Jeff<em>TV</em></span>
+      </div>
+      <button id="sidebar-toggle" class="icon-btn" aria-label="Tutup sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Search -->
+    <div class="search-wrap">
+      <svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="search" id="search-input" placeholder="Cari saluran TV..." autocomplete="off" />
+      <button id="search-clear" class="search-clear hidden" aria-label="Hapus">✕</button>
+    </div>
+
+    <!-- Developer Profile Card (BorneoCodeLabs) -->
+    <div class="dev-profile-card">
+      <div class="dev-avatar-wrap">
+        <span class="dev-avatar">👨‍💻</span>
+        <span class="dev-status-pulse"></span>
+      </div>
+      <div class="dev-info">
+        <h4 class="dev-name">Jefri <span class="dev-verify">✓</span></h4>
+        <span class="dev-tag">BorneoCodeLabs</span>
+        <p class="dev-desc">Jasa Pembuatan Website & Aplikasi Custom Profesional</p>
+      </div>
+      <div class="dev-links">
+        <a href="https://jefri-orcin.vercel.app/" target="_blank" rel="noopener" class="dev-link-btn" title="Portfolio Jefri">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          Portfolio
+        </a>
+        <a href="https://borneocodelabs.xo.je/" target="_blank" rel="noopener" class="dev-link-btn primary" title="BorneoCodeLabs Website">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Agensi
+        </a>
+      </div>
+    </div>
+
+    <!-- Playlist Source -->
+    <div class="sidebar-sec">
+      <h3 class="sec-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Playlist
+      </h3>
+      <div id="playlist-tabs" class="playlist-tabs">
+        <button class="ptab active" data-mode="api">
+          <span class="ptab-icon">🌐</span>
+          <span>Semua</span>
+          <small>API</small>
+        </button>
+        <button class="ptab" data-mode="category">
+          <span class="ptab-icon">📂</span>
+          <span>Kategori</span>
+          <small>M3U</small>
+        </button>
+        <button class="ptab" data-mode="country">
+          <span class="ptab-icon">🗺️</span>
+          <span>Negara</span>
+          <small>M3U</small>
+        </button>
+        <button class="ptab" data-mode="custom">
+          <span class="ptab-icon">➕</span>
+          <span>Kustom</span>
+          <small>M3U</small>
+        </button>
+      </div>
+    </div>
+
+    <!-- Country Filter -->
+    <div class="sidebar-sec" id="country-sec">
+      <h3 class="sec-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Negara
+      </h3>
+      <select id="country-select">
+        <option value="">🌍 Semua Negara</option>
+      </select>
+    </div>
+
+    <!-- Category Filter -->
+    <div class="sidebar-sec" id="cat-sec">
+      <h3 class="sec-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Kategori
+      </h3>
+      <div id="category-list" class="cat-pills"></div>
+    </div>
+
+    <!-- Custom Playlist Section -->
+    <div class="sidebar-sec hidden" id="custom-playlist-sec">
+      <h3 class="sec-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Playlist M3U Kustom
+      </h3>
+      <div class="custom-playlist-inputs">
+        <div class="input-group">
+          <label class="input-lbl" for="m3u-url-input">Link URL Playlist M3U</label>
+          <div class="input-row">
+            <input type="url" id="m3u-url-input" placeholder="https://example.com/playlist.m3u" autocomplete="off" />
+            <button id="load-m3u-url-btn" class="btn-primary-sm">Load</button>
+          </div>
+        </div>
+        <div class="divider-text"><span>ATAU</span></div>
+        <div class="input-group">
+          <label class="file-upload-label" for="m3u-file-input">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            <span>Pilih File .m3u / .m3u8</span>
+          </label>
+          <input type="file" id="m3u-file-input" accept=".m3u,.m3u8" class="hidden" />
+        </div>
+      </div>
+      <div id="custom-playlist-info" class="custom-playlist-info hidden">
+        <p>Terisi: <strong id="custom-ch-count">0</strong> saluran kustom</p>
+        <button id="clear-custom-playlist-btn" class="btn-ghost danger-ghost btn-sm-full">Hapus Playlist Kustom</button>
+      </div>
+    </div>
+
+    <!-- Status Filter -->
+    <div class="sidebar-sec">
+      <h3 class="sec-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Status Siaran
+      </h3>
+      <div class="status-filter-btns">
+        <button class="sfbtn active" data-status="all" id="sf-all">
+          <span class="sfbtn-dot all"></span> Semua
+        </button>
+        <button class="sfbtn" data-status="online" id="sf-online">
+          <span class="sfbtn-dot online"></span> Online
+        </button>
+        <button class="sfbtn" data-status="offline" id="sf-offline">
+          <span class="sfbtn-dot offline"></span> Offline
+        </button>
+      </div>
+      <div class="check-progress-wrap hidden" id="check-progress-wrap">
+        <div class="check-progress-bar" id="check-progress-bar"></div>
+        <span id="check-progress-text">Memeriksa stream...</span>
+      </div>
+      <button id="check-streams-btn" class="check-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+        Cek Status Stream
+      </button>
+    </div>
+
+    <!-- Favorites -->
+    <div class="sidebar-sec">
+      <h3 class="sec-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        Favorit
+        <span id="fav-count" class="badge">0</span>
+      </h3>
+      <div id="fav-list" class="fav-list">
+        <p class="empty-sm">Belum ada favorit</p>
+      </div>
+    </div>
+
+    <!-- Riwayat Tontonan -->
+    <div class="sidebar-sec">
+      <h3 class="sec-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Riwayat Tontonan
+        <button id="clear-history-btn" class="btn-clear-history hidden">Hapus</button>
+      </h3>
+      <div id="history-list" class="fav-list">
+        <p class="empty-sm">Belum ada riwayat</p>
+      </div>
+    </div>
+
+    <!-- Stats footer -->
+    <div class="sidebar-footer">
+      <div class="stats-row">
+        <div class="stat-box">
+          <span id="total-channels">—</span>
+          <label>Saluran</label>
+        </div>
+        <div class="stat-box">
+          <span id="total-countries">—</span>
+          <label>Negara</label>
+        </div>
+        <div class="stat-box">
+          <span id="stat-online">—</span>
+          <label>Online</label>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main id="main" class="main">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="topbar-l">
+        <button id="menu-toggle" class="icon-btn menu-btn" aria-label="Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div>
+          <h2 id="page-title">Indonesia 🇮🇩</h2>
+          <span id="ch-count" class="ch-count">Memuat...</span>
+        </div>
+      </div>
+      <div class="topbar-r">
+        <div id="online-summary" class="online-summary hidden">
+          <span class="os-dot online"></span><span id="online-count">0</span> Online
+          <span class="os-sep">·</span>
+          <span class="os-dot offline"></span><span id="offline-count">0</span> Offline
+        </div>
+        <div class="view-toggle">
+          <button id="view-grid" class="vbtn active" title="Grid">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          </button>
+          <button id="view-list" class="vbtn" title="List">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1"/><circle cx="3" cy="12" r="1"/><circle cx="3" cy="18" r="1"/></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- HERO -->
+    <section id="hero" class="hero">
+      <div class="hero-glow"></div>
+      <div class="hero-body">
+        <div class="hero-live-badge">
+          <span class="live-pulse"></span> LIVE TV
+        </div>
+        <h1>Nonton TV Online<br/><span class="hero-grad">Gratis & Tanpa Aplikasi</span></h1>
+        <p>Ribuan saluran dari 200+ negara langsung di browser. Pilih saluran dan streaming mulai sekarang!</p>
+        <div class="hero-chips">
+          <div class="chip">📺 HD & SD Stream</div>
+          <div class="chip">🌍 200+ Negara</div>
+          <div class="chip">⚡ Instan Play</div>
+          <div class="chip">🆓 100% Gratis</div>
+          <div class="chip">🔴 Live TV</div>
+        </div>
+      </div>
+
+      <!-- Developer Portfolio Banner -->
+      <div class="dev-portfolio-banner">
+        <div class="dev-banner-body">
+          <div class="dev-banner-badge">💡 JASA PEMBUATAN WEB & APLIKASI</div>
+          <h2>Butuh Website atau Aplikasi Kustom?</h2>
+          <p>Wujudkan ide Anda menjadi Landing Page, Web App, atau Sistem Informasi yang modern, responsif, dan siap pakai. Dikerjakan secara profesional oleh <strong>Jefri (BorneoCodeLabs)</strong>.</p>
+          <div class="dev-banner-tags">
+            <span>⚡ Kecepatan Tinggi</span>
+            <span>📱 Responsive Design</span>
+            <span>🎨 Premium UI/UX</span>
+            <span>🛠️ Full Support</span>
+          </div>
+        </div>
+        <div class="dev-banner-actions">
+          <a href="https://borneocodelabs.xo.je/" target="_blank" rel="noopener" class="banner-btn primary">
+            Hubungi BorneoCodeLabs
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+          <a href="https://jefri-orcin.vercel.app/" target="_blank" rel="noopener" class="banner-btn secondary">
+            Lihat Portfolio Jefri
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLAYER -->
+    <section id="player-sec" class="player-sec hidden">
+      <div class="player-container">
+        <div class="player-box" id="player-box">
+          <video id="video" controls playsinline></video>
+          <!-- Loading overlay -->
+          <div id="p-loading" class="p-overlay">
+            <div class="p-spinner"></div>
+            <span id="p-loading-txt">Menghubungkan stream...</span>
+          </div>
+          <!-- Error overlay -->
+          <div id="p-error" class="p-overlay p-error hidden">
+            <div class="p-err-icon">📡</div>
+            <h3>Sinyal Tidak Tersedia</h3>
+            <p id="p-error-msg">Stream tidak dapat diputar saat ini.</p>
+            <div class="p-err-actions">
+              <button id="prev-err-btn" class="btn-ghost">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
+                Sebelumnya
+              </button>
+              <button id="retry-btn" class="btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+                Coba Lagi
+              </button>
+              <button id="next-btn" class="btn-ghost">
+                Berikutnya
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+          <!-- Quality badge -->
+          <div id="quality-badge" class="quality-badge hidden">HD</div>
+        </div>
+        <!-- Player Info Bar -->
+        <div class="player-info">
+          <div class="pi-left">
+            <div id="pi-logo" class="pi-logo">📺</div>
+            <div class="pi-meta">
+              <h2 id="pi-name">—</h2>
+              <div class="pi-tags" id="pi-tags"></div>
+            </div>
+          </div>
+          <div class="pi-right">
+            <!-- Nav buttons -->
+            <button id="prev-ch-btn" class="ctrl-btn ctrl-nav" title="Saluran Sebelumnya (←)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Sebelumnya</span>
+            </button>
+            <div id="ch-position" class="ch-position">—</div>
+            <button id="next-ch-btn" class="ctrl-btn ctrl-nav" title="Saluran Berikutnya (→)">
+              <span>Berikutnya</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <div class="ctrl-divider"></div>
+            <button id="aspect-btn" class="ctrl-btn" title="Aspek Rasio Video (VLC-style)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+              <span id="aspect-lbl" style="font-size:10px;font-weight:bold;margin-left:4px;color:rgba(255,255,255,0.7)">AR: Def</span>
+            </button>
+            <button id="fav-btn" class="ctrl-btn" title="Favorit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              <span>Favorit</span>
+            </button>
+            <button id="pip-btn" class="ctrl-btn" title="Picture in Picture">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="2" y="4" width="20" height="16" rx="2"/><rect x="12" y="12" width="8" height="6" rx="1"/></svg>
+              <span>PiP</span>
+            </button>
+            <button id="fs-btn" class="ctrl-btn" title="Layar Penuh">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+              <span>Fullscreen</span>
+            </button>
+            <button id="close-player" class="ctrl-btn ctrl-close" title="Tutup">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <span>Tutup</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHANNELS -->
+    <section class="channels-sec">
+      <!-- Skeleton -->
+      <div id="skeleton" class="skeleton-grid">
+        <div class="skel-card"></div><div class="skel-card"></div>
+        <div class="skel-card"></div><div class="skel-card"></div>
+        <div class="skel-card"></div><div class="skel-card"></div>
+        <div class="skel-card"></div><div class="skel-card"></div>
+      </div>
+
+      <!-- Empty state -->
+      <div id="empty" class="empty hidden">
+        <div class="empty-icon">📭</div>
+        <h3>Tidak Ada Saluran</h3>
+        <p>Coba ubah filter atau kata kunci pencarian.</p>
+        <button onclick="clearFilters()" class="btn-primary">Reset Filter</button>
+      </div>
+
+      <!-- Grid -->
+      <div id="ch-grid" class="ch-grid hidden"></div>
+
+      <!-- Load More -->
+      <div id="loadmore-wrap" class="loadmore-wrap hidden">
+        <button id="loadmore-btn" class="loadmore-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9"/></svg>
+          <span id="loadmore-txt">Tampilkan Lebih Banyak</span>
+        </button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Sidebar overlay -->
+<div id="sb-overlay" class="sb-overlay hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
