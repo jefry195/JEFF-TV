@@ -421,10 +421,21 @@ button{cursor:pointer;font-family:'Outfit',sans-serif}
   .hero{padding:32px 18px}
   .channels-sec{padding:14px}
   .skeleton-grid,.ch-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-  .player-info{padding:10px 14px}
-  .pi-right{display:none}
+  .player-info{flex-direction:column;align-items:stretch;gap:12px;padding:12px 14px}
+  .pi-left{width:100%;justify-content:flex-start}
+  .pi-right{display:flex;align-items:center;justify-content:space-between;width:100%;gap:6px;overflow-x:auto;scrollbar-width:none}
+  .pi-right::-webkit-scrollbar{display:none}
+  .ctrl-btn{padding:8px 10px;font-size:11.5px;gap:5px}
+  .ctrl-divider{height:20px;margin:0 1px}
   .topbar{padding:0 14px}
   .online-summary{display:none}
+}
+
+@media(max-width:520px){
+  .ctrl-btn span{display:none}
+  .ctrl-btn.ctrl-nav span{display:inline}
+  .ctrl-divider{margin:0}
+  .ch-position{font-size:10.5px;min-width:30px}
 }
 @media(max-width:480px){
   .skeleton-grid,.ch-grid{grid-template-columns:repeat(2,1fr);gap:8px}
