@@ -109,8 +109,14 @@ function initDOM() {
     searchClear:    q('search-clear'),
     playlistTabs:   q('playlist-tabs'),
     countrySec:     q('country-sec'),
-    countrySelect:  q('country-select'),
-    countrySearch:  q('country-search'),
+    countryCustomSelect:    q('country-custom-select'),
+    countrySelectTrigger:   q('country-select-trigger'),
+    countrySelectOptions:   q('country-select-options'),
+    countryOptionsList:     q('country-options-list'),
+    selectedCountryFlag:    q('selected-country-flag'),
+    selectedCountryEmoji:   q('selected-country-emoji'),
+    selectedCountryName:    q('selected-country-name'),
+    countrySearch:          q('country-search'),
     catSec:         q('cat-sec'),
     catList:        q('category-list'),
     sfAll:          q('sf-all'),
@@ -542,6 +548,74 @@ function updateOnlineSummary() {
 // ════════════════════════════════════════════
 // FILTER BUILDERS
 // ════════════════════════════════════════════
+function getLogoPlaceholderHtml(name, hasLogo) {
+  const clean = name.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+  const words = clean.split(/\s+/).filter(Boolean);
+  let initials = '';
+  if (words.length >= 2) {
+    initials = (words[0][0] + words[1][0]).toUpperCase();
+  } else if (clean.length > 0) {
+    initials = clean.slice(0, 2).toUpperCase();
+  } else {
+    initials = 'TV';
+  }
+  
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const h1 = Math.abs(hash % 360);
+  const h2 = (h1 + 45) % 360;
+  
+  const grad = `linear-gradient(135deg, hsl(${h1}, 75%, 45%), hsl(${h2}, 85%, 35%))`;
+  
+  return `<div class="card-logo-ph-custom" style="background:${grad}; display:${hasLogo?'none':'flex'}"><span>${initials}</span></div>`;
+}
+
+function updateCountryTriggerUI(code, name) {
+  if (code) {
+    if (D.selectedCountryFlag) {
+      D.selectedCountryFlag.src = `https://flagcdn.com/w40/${code.toLowerCase()}.png`;
+      D.selectedCountryFlag.style.display = 'inline-block';
+    }
+    if (D.selectedCountryEmoji) D.selectedCountryEmoji.style.display = 'none';
+  } else {
+    if (D.selectedCountryFlag) D.selectedCountryFlag.style.display = 'none';
+    if (D.selectedCountryEmoji) {
+      D.selectedCountryEmoji.style.display = 'inline-block';
+      D.selectedCountryEmoji.textContent = '🌍';
+    }
+  }
+  if (D.selectedCountryName) D.selectedCountryName.textContent = name;
+}
+
+async function selectCountry(code, name) {
+  S.country = code;
+  updateCountryTriggerUI(code, name);
+  
+  D.countrySelectOptions?.classList.add('hidden');
+  D.countryCustomSelect?.classList.remove('open');
+  
+  if (S.mode === 'country') {
+    if (S.country) {
+      await reloadMode();
+    } else {
+      S.mode = 'api';
+      D.playlistTabs?.querySelectorAll('.ptab').forEach(t => {
+        t.classList.toggle('active', t.dataset.mode === 'api');
+      });
+      D.catSec.style.display='';
+      if (D.countrySearch) {
+        D.countrySearch.value = '';
+        renderCountryOptions('');
+      }
+      await reloadMode();
+    }
+  } else {
+    applyFilters();
+  }
+}
+
 function buildCountryFilter() {
   const cnt = {};
   S.all.forEach(c => {
@@ -559,23 +633,32 @@ function buildCountryFilter() {
     name: CNAMES[code] || code
   }));
 
-  // Reset search box on rebuild
   if (D.countrySearch) D.countrySearch.value = '';
-  renderCountryOptions('');
-
-  // Auto-select Indonesia
+  
+  // Set default trigger state
   if (cnt['ID']) {
-    D.countrySelect.value = 'ID';
     S.country = 'ID';
+    updateCountryTriggerUI('ID', 'Indonesia');
+  } else {
+    S.country = '';
+    updateCountryTriggerUI('', 'Semua Negara');
   }
+
+  renderCountryOptions('');
 }
 
 function renderCountryOptions(q) {
-  const select = D.countrySelect;
-  if (!select) return;
+  const container = D.countryOptionsList;
+  if (!container) return;
 
-  const val = S.country; // Simpan nilai terpilih sebelumnya
-  select.innerHTML = '<option value="">🌍 Semua Negara</option>';
+  container.innerHTML = '';
+  
+  // Semua negara item
+  const allItem = document.createElement('div');
+  allItem.className = 'option-item' + (!S.country ? ' active' : '');
+  allItem.innerHTML = `<span>🌍</span> <span>Semua Negara</span>`;
+  allItem.addEventListener('click', () => selectCountry('', 'Semua Negara'));
+  container.appendChild(allItem);
 
   const query = q.toLowerCase().trim();
   const filtered = S.countriesList.filter(c => {
@@ -584,18 +667,16 @@ function renderCountryOptions(q) {
   });
 
   filtered.forEach(c => {
-    const o = document.createElement('option');
-    o.value = c.code;
-    o.textContent = `${flag(c.code)} ${c.name} (${c.count})`;
-    select.appendChild(o);
+    const item = document.createElement('div');
+    item.className = 'option-item' + (S.country === c.code ? ' active' : '');
+    const flagUrl = `https://flagcdn.com/w40/${c.code.toLowerCase()}.png`;
+    item.innerHTML = `
+      <img class="flag-icon-img" src="${flagUrl}" alt="${c.code}" onerror="this.style.display='none'" />
+      <span>${c.name} (${c.count})</span>
+    `;
+    item.addEventListener('click', () => selectCountry(c.code, c.name));
+    container.appendChild(item);
   });
-
-  // Pulihkan nilai terpilih jika masih ada di daftar hasil pencarian
-  if (filtered.some(c => c.code === val)) {
-    select.value = val;
-  } else if (!val) {
-    select.value = '';
-  }
 }
 
 function buildCategoryFilter() {
@@ -787,13 +868,15 @@ function makeCard(ch, idx) {
   card.setAttribute('aria-label',`Tonton ${esc(ch.name)}`);
 
   const logoHtml = ch.logo
-    ? `<img class="card-logo" src="${esc(ch.logo)}" alt="${esc(ch.name)}" loading="lazy" onerror="this.remove();this.parentElement?.querySelector('.card-logo-ph')?.style.setProperty('display','flex')">`
+    ? `<img class="card-logo" src="${esc(ch.logo)}" alt="${esc(ch.name)}" loading="lazy" onerror="this.remove();this.parentElement?.querySelector('.card-logo-ph-custom')?.style.setProperty('display','flex')">`
     : '';
+
+  const fallbackLogoHtml = getLogoPlaceholderHtml(ch.name, !!ch.logo);
 
   card.innerHTML = `
     <div class="card-thumb">
       ${logoHtml}
-      <div class="card-logo-ph" style="${ch.logo?'display:none':''}">📺</div>
+      ${fallbackLogoHtml}
       <div class="card-play-ov">
         <div class="card-play-circle">
           <svg viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
@@ -1565,19 +1648,13 @@ function setupEvents() {
       if (S.mode === 'api') {
         D.countrySec.style.display='';
         D.catSec.style.display='';
-        // Restore country filter
-        S.country = D.countrySelect.value || 'ID';
-        if (!D.countrySelect.value) {
-          D.countrySelect.value = 'ID';
-          S.country = 'ID';
-        }
+        S.country = S.country || 'ID';
+        updateCountryTriggerUI(S.country, S.country === 'ID' ? 'Indonesia' : (CNAMES[S.country] || S.country));
       } else if (S.mode === 'country') {
         D.countrySec.style.display='';
         D.catSec.style.display='none';
-        if (!D.countrySelect.value) {
-          D.countrySelect.value = 'ID'; // Default to ID
-        }
-        S.country = D.countrySelect.value;
+        S.country = S.country || 'ID';
+        updateCountryTriggerUI(S.country, S.country === 'ID' ? 'Indonesia' : (CNAMES[S.country] || S.country));
       } else if (S.mode === 'category') {
         D.countrySec.style.display='none';
         D.catSec.style.display='';
@@ -1625,33 +1702,26 @@ function setupEvents() {
     applyFilters(); D.searchInput.focus();
   });
 
-  // Country
-  D.countrySearch?.addEventListener('input', e => {
-    renderCountryOptions(e.target.value);
+  // Custom Country Select events
+  D.countrySelectTrigger?.addEventListener('click', e => {
+    e.stopPropagation();
+    const isOpen = !D.countrySelectOptions.classList.contains('hidden');
+    D.countrySelectOptions.classList.toggle('hidden', isOpen);
+    D.countryCustomSelect.classList.toggle('open', !isOpen);
+    if (!isOpen) {
+      D.countrySearch?.focus();
+    }
   });
 
-  D.countrySelect?.addEventListener('change', async () => {
-    S.country = D.countrySelect.value;
-    if (S.mode === 'country') {
-      if (S.country) {
-        await reloadMode();
-      } else {
-        // Switch to API mode (Semua)
-        S.mode = 'api';
-        D.playlistTabs?.querySelectorAll('.ptab').forEach(t => {
-          t.classList.toggle('active', t.dataset.mode === 'api');
-        });
-        D.catSec.style.display='';
-        if (D.countrySearch) {
-          D.countrySearch.value = '';
-          renderCountryOptions('');
-        }
-        // Restore country to select value, here it is empty
-        await reloadMode();
-      }
-    } else {
-      applyFilters();
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#country-custom-select')) {
+      D.countrySelectOptions?.classList.add('hidden');
+      D.countryCustomSelect?.classList.remove('open');
     }
+  });
+
+  D.countrySearch?.addEventListener('input', e => {
+    renderCountryOptions(e.target.value);
   });
 
   // Status filter
@@ -1873,6 +1943,13 @@ window.startCheck = startCheck; // expose untuk onclick di HTML
 document.addEventListener('DOMContentLoaded', () => {
   initDOM();
   setupEvents();
+
+  // Register Service Worker for PWA
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log('[JeffTV] SW Registered'))
+      .catch(err => console.warn('[JeffTV] SW Fail', err));
+  }
 
   // Update check button text
   if (D.checkBtn) {
