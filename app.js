@@ -101,6 +101,7 @@ function initDOM() {
     splash:         q('splash-screen'),
     splashStatus:   q('splash-status'),
     app:            q('app'),
+    logoLink:       q('logo-link'),
     sidebar:        q('sidebar'),
     sbOverlay:      q('sb-overlay'),
     sbToggle:       q('sidebar-toggle'),
@@ -1630,6 +1631,17 @@ function setupEvents() {
   D.menuBtn?.addEventListener('click', openSb);
   D.sbToggle?.addEventListener('click', closeSb);
   D.sbOverlay?.addEventListener('click', closeSb);
+
+  // Logo home link
+  D.logoLink?.addEventListener('click', e => {
+    e.preventDefault();
+    closePlayer();
+    clearFilters();
+    if (S.mode !== 'api') {
+      const apiTab = D.playlistTabs?.querySelector('[data-mode="api"]');
+      apiTab?.click();
+    }
+  });
 
   // Playlist tabs
   D.playlistTabs?.querySelectorAll('.ptab').forEach(tab => {
