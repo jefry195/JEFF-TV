@@ -176,6 +176,10 @@ function initDOM() {
     // Aspect Ratio
     aspectBtn:              q('aspect-btn'),
     aspectLbl:              q('aspect-lbl'),
+    // PWA Install
+    pwaInstallSec:          q('pwa-install-sec'),
+    pwaInstallBtn:          q('pwa-install-btn'),
+    topPwaInstallBtn:       q('top-pwa-install-btn'),
     // Channels
     skeleton:       q('skeleton'),
     empty:          q('empty'),
@@ -1838,6 +1842,10 @@ function setupEvents() {
 
   // Aspect Ratio events
   D.aspectBtn?.addEventListener('click', toggleAspectRatio);
+
+  // PWA Install events
+  D.pwaInstallBtn?.addEventListener('click', handlePwaInstall);
+  D.topPwaInstallBtn?.addEventListener('click', handlePwaInstall);
 }
 
 // ════════════════════════════════════════════
@@ -1936,6 +1944,21 @@ function startCheck() {
 }
 window.startCheck = startCheck; // expose untuk onclick di HTML
 
+// PWA Custom Install Handler
+function handlePwaInstall() {
+  const promptEvent = window._deferredPrompt;
+  if (!promptEvent) return;
+  promptEvent.prompt();
+  promptEvent.userChoice.then(choice => {
+    if (choice.outcome === 'accepted') {
+      console.log('[JeffTV] PWA installation accepted');
+    }
+    D.pwaInstallSec?.classList.add('hidden');
+    D.topPwaInstallBtn?.classList.add('hidden');
+    window._deferredPrompt = null;
+  });
+}
+
 
 // ════════════════════════════════════════════
 // BOOT
@@ -1950,6 +1973,21 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(() => console.log('[JeffTV] SW Registered'))
       .catch(err => console.warn('[JeffTV] SW Fail', err));
   }
+
+  // Handle PWA installation prompts
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    window._deferredPrompt = e;
+    if (D.pwaInstallSec) D.pwaInstallSec.classList.remove('hidden');
+    if (D.topPwaInstallBtn) D.topPwaInstallBtn.classList.remove('hidden');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    D.pwaInstallSec?.classList.add('hidden');
+    D.topPwaInstallBtn?.classList.add('hidden');
+    window._deferredPrompt = null;
+    showToast('🎉 Aplikasi JeffTV berhasil dipasang!');
+  });
 
   // Update check button text
   if (D.checkBtn) {
