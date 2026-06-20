@@ -1,5 +1,5 @@
 /**
- * JeffTV — app.js v3.1
+ * JeffTV — app.js v3.2
  * HTML + Vanilla JS dipilih karena:
  *  - Tidak perlu build step (buka langsung di browser)
  *  - Lebih ringan & cepat untuk kasus ini
@@ -17,6 +17,8 @@
 // CONFIG
 // ════════════════════════════════════════════
 const CFG = {
+  // App/Cache version for cache busting
+  CACHE_VERSION:    'v3.2',
   // iptv-org playlist base URLs (from PLAYLISTS.md)
   PLAYLIST_BASE:    'https://iptv-org.github.io/iptv',
   // API endpoints
@@ -281,26 +283,34 @@ function parseExtInf(ln, url) {
 
 /* Load via API (channels.json + streams.json + logos.json) with client-side caching */
 async function loadAPI(forceRefresh = false) {
-  const CACHE_KEY = 'jftv_channels_cache';
-  const CACHE_TIME_KEY = 'jftv_channels_cache_time';
+  const CACHE_KEY = 'jftv_channels_cache_' + CFG.CACHE_VERSION;
+  const CACHE_TIME_KEY = 'jftv_channels_cache_time_' + CFG.CACHE_VERSION;
   const ONE_DAY = 24 * 60 * 60 * 1000; // 24 hours
 
   // Try loading from localStorage first if not forced
   if (!forceRefresh) {
     try {
+      // Clean up old caches from previous versions to free up storage space
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('jftv_channels_cache') && !key.includes(CFG.CACHE_VERSION)) {
+          localStorage.removeItem(key);
+        }
+      }
+
       const cached = localStorage.getItem(CACHE_KEY);
       const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
       const now = Date.now();
 
       if (cached && cachedTime && (now - parseInt(cachedTime, 10) < ONE_DAY)) {
-        console.log('[JeffTV] Loaded channels from localStorage cache');
         const parsed = JSON.parse(cached);
-        if (parsed && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length > 500) {
+          console.log('[JeffTV] Loaded channels from localStorage cache (' + CFG.CACHE_VERSION + ')');
           return parsed;
         }
       }
     } catch (e) {
-      console.warn('[JeffTV] LocalStorage cache read failed:', e);
+      console.warn('[JeffTV] LocalStorage cache read/cleanup failed:', e);
     }
   }
 
