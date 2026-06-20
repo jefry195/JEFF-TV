@@ -1848,11 +1848,58 @@ function setupEvents() {
   D.nextChBtn?.addEventListener('click', playNext);
   D.favBtn?.addEventListener('click', () => { if (S.currentCh) toggleFav(S.currentCh, null); });
 
-  D.pipBtn?.addEventListener('click', async () => {
+  // PiP helpers
+  function updatePipBtnIcon(inPip) {
+    if (!D.pipBtn) return;
+    if (inPip) {
+      D.pipBtn.title = 'Keluar Picture in Picture';
+      D.pipBtn.style.color = 'var(--accent)';
+      D.pipBtn.querySelector('span').textContent = 'Exit PiP';
+    } else {
+      D.pipBtn.title = 'Picture in Picture';
+      D.pipBtn.style.color = '';
+      D.pipBtn.querySelector('span').textContent = 'PiP';
+    }
+  }
+
+  async function togglePip() {
+    if (!document.pictureInPictureEnabled) { showToast('⚠️ PiP tidak didukung browser ini'); return; }
     try {
-      if (document.pictureInPictureElement) await document.exitPictureInPicture();
-      else await D.video.requestPictureInPicture?.();
-    } catch(e) { showToast('⚠️ PiP tidak didukung'); }
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (!D.video.paused && D.video.readyState >= 2) {
+        await D.video.requestPictureInPicture();
+      } else {
+        showToast('⚠️ Putar channel dulu untuk PiP');
+      }
+    } catch(e) { showToast('⚠️ PiP tidak dapat diaktifkan'); }
+  }
+
+  D.pipBtn?.addEventListener('click', togglePip);
+
+  // Update PiP button icon when PiP state changes
+  D.video?.addEventListener('enterpictureinpicture', () => {
+    updatePipBtnIcon(true);
+    showToast('📺 PiP aktif — video tetap berjalan di latar belakang');
+  });
+  D.video?.addEventListener('leavepictureinpicture', () => {
+    updatePipBtnIcon(false);
+  });
+
+  // Auto PiP: enter PiP when user leaves the tab/app while video is playing
+  document.addEventListener('visibilitychange', async () => {
+    if (!document.pictureInPictureEnabled) return;
+    if (document.hidden) {
+      // User left the tab — auto enter PiP if video is playing and no PiP active
+      if (!D.video.paused && D.video.readyState >= 2 && !document.pictureInPictureElement) {
+        try { await D.video.requestPictureInPicture(); } catch(e) { /* silently fail */ }
+      }
+    } else {
+      // User came back to the tab — exit PiP if active
+      if (document.pictureInPictureElement) {
+        try { await document.exitPictureInPicture(); } catch(e) { /* silently fail */ }
+      }
+    }
   });
 
   D.fsBtn?.addEventListener('click', () => {
@@ -1902,6 +1949,7 @@ function setupEvents() {
     if (tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA') return;
     if (e.key==='Escape') { closePlayer(); closeSb(); }
     if (e.key==='f'||e.key==='F') D.fsBtn?.click();
+    if (e.key==='i'||e.key==='I') togglePip?.();
     if (e.key==='n'||e.key==='N') playNext();
     if (e.key==='p'||e.key==='P') playPrev();
     if (e.key==='/'||e.key==='s') { e.preventDefault(); D.searchInput?.focus(); }
