@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jefftv-cache-v1';
+const CACHE_NAME = 'jefftv-cache-v3.2';
 const ASSETS = [
   '/',
   '/index.html',
