@@ -182,6 +182,7 @@ function initDOM() {
     pwaInstallSec:          q('pwa-install-sec'),
     pwaInstallBtn:          q('pwa-install-btn'),
     topPwaInstallBtn:       q('top-pwa-install-btn'),
+    refreshCacheBtn:        q('refresh-cache-btn'),
     // Channels
     skeleton:       q('skeleton'),
     empty:          q('empty'),
@@ -278,8 +279,31 @@ function parseExtInf(ln, url) {
 // DATA LOADERS
 // ════════════════════════════════════════════
 
-/* Load via API (channels.json + streams.json + logos.json) */
-async function loadAPI() {
+/* Load via API (channels.json + streams.json + logos.json) with client-side caching */
+async function loadAPI(forceRefresh = false) {
+  const CACHE_KEY = 'jftv_channels_cache';
+  const CACHE_TIME_KEY = 'jftv_channels_cache_time';
+  const ONE_DAY = 24 * 60 * 60 * 1000; // 24 hours
+
+  // Try loading from localStorage first if not forced
+  if (!forceRefresh) {
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
+      const now = Date.now();
+
+      if (cached && cachedTime && (now - parseInt(cachedTime, 10) < ONE_DAY)) {
+        console.log('[JeffTV] Loaded channels from localStorage cache');
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('[JeffTV] LocalStorage cache read failed:', e);
+    }
+  }
+
   setSplashStatus('Memuat data saluran TV...');
   const [chData, stData, logoData] = await Promise.all([
     fetchJSON(CFG.CHANNELS_API),
@@ -333,6 +357,16 @@ async function loadAPI() {
     });
     if (result.length >= 25000) break;
   }
+
+  // Save to localStorage cache
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(result));
+    localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+    console.log('[JeffTV] Saved channels to localStorage cache');
+  } catch (e) {
+    console.warn('[JeffTV] LocalStorage cache write failed:', e);
+  }
+
   return result;
 }
 
@@ -1260,7 +1294,7 @@ function updateChannelPosition() {
 // ════════════════════════════════════════════
 // PLAYLIST MODE SWITCHING
 // ════════════════════════════════════════════
-async function reloadMode() {
+async function reloadMode(forceRefresh = false) {
   D.skeleton.classList.remove('hidden');
   D.grid.classList.add('hidden');
   D.empty.classList.add('hidden');
@@ -1268,13 +1302,13 @@ async function reloadMode() {
   try {
     let chs = [];
     if (S.mode === 'api') {
-      chs = await loadAPI();
+      chs = await loadAPI(forceRefresh);
     } else if (S.mode === 'country' && S.country) {
       chs = await loadCountryM3U(S.country);
     } else if (S.mode === 'category' && S.categoryM3U) {
       chs = await loadCategoryM3U(S.categoryM3U);
     } else {
-      chs = await loadAPI();
+      chs = await loadAPI(forceRefresh);
     }
     S.all = processChannels(chs);
   } catch(e) {
@@ -1884,6 +1918,23 @@ function setupEvents() {
   // PWA Install events
   D.pwaInstallBtn?.addEventListener('click', handlePwaInstall);
   D.topPwaInstallBtn?.addEventListener('click', handlePwaInstall);
+
+  // Cache Refresh events
+  D.refreshCacheBtn?.addEventListener('click', async () => {
+    D.refreshCacheBtn.disabled = true;
+    const oldHtml = D.refreshCacheBtn.innerHTML;
+    D.refreshCacheBtn.innerHTML = '⏳ Menyegarkan...';
+    try {
+      showToast('🔄 Memperbarui daftar saluran dari server...');
+      await reloadMode(true);
+      showToast('✅ Berhasil menyegarkan saluran!');
+    } catch(e) {
+      showToast('⚠️ Gagal menyegarkan saluran');
+    } finally {
+      D.refreshCacheBtn.innerHTML = oldHtml;
+      D.refreshCacheBtn.disabled = false;
+    }
+  });
 }
 
 // ════════════════════════════════════════════
