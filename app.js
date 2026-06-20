@@ -22,6 +22,7 @@ const CFG = {
   // API endpoints
   CHANNELS_API:     'https://iptv-org.github.io/api/channels.json',
   STREAMS_API:      'https://iptv-org.github.io/api/streams.json',
+  LOGOS_API:        'https://iptv-org.github.io/api/logos.json',
 
   // CORS proxies (tried in order)
   PROXIES: [
@@ -277,17 +278,25 @@ function parseExtInf(ln, url) {
 // DATA LOADERS
 // ════════════════════════════════════════════
 
-/* Load via API (channels.json + streams.json) */
+/* Load via API (channels.json + streams.json + logos.json) */
 async function loadAPI() {
   setSplashStatus('Memuat data saluran TV...');
-  const [chData, stData] = await Promise.all([
+  const [chData, stData, logoData] = await Promise.all([
     fetchJSON(CFG.CHANNELS_API),
     fetchJSON(CFG.STREAMS_API),
+    fetchJSON(CFG.LOGOS_API),
   ]);
   setSplashStatus(`Memproses ${stData.length.toLocaleString()} stream...`);
 
   const chMap = {};
   chData.forEach(c => { chMap[c.id] = c; });
+
+  const logoMap = {};
+  logoData.forEach(l => {
+    if (l.in_use) {
+      logoMap[l.channel] = l.url;
+    }
+  });
 
   const seen = new Set();
   const result = [];
@@ -310,17 +319,19 @@ async function loadAPI() {
     const groupSlug = cats[0] || 'general';
     const group = CFG.CAT_LABELS[groupSlug] || groupSlug;
 
+    const logo = logoMap[st.channel] || '';
+
     result.push({
       id: st.channel,
       name: meta.name || st.channel,
-      logo: meta.logo || '',
+      logo: logo,
       group,
       groupSlug,
       country,
       language: (meta.languages || [])[0] || '',
       url: st.url,
     });
-    if (result.length >= 12000) break;
+    if (result.length >= 25000) break;
   }
   return result;
 }
@@ -372,18 +383,18 @@ function processChannels(chs) {
 /* Fallback channels when everything fails */
 function fallbackChannels() {
   return [
-    {id:'tvri', name:'TVRI', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/TVRI_2019_logo.svg/200px-TVRI_2019_logo.svg.png', group:'Berita', groupSlug:'news', country:'ID', url:'https://d2jqqhyy3swgs1.cloudfront.net/out/v1/7d4b8fe08b664abb8d80ff5deb1f8bb8/index.m3u8'},
-    {id:'rcti', name:'RCTI', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/RCTI_logo.svg/200px-RCTI_logo.svg.png', group:'Hiburan', groupSlug:'entertainment', country:'ID', url:'https://streaming.rctiplus.com/4/master.m3u8'},
-    {id:'mnctv', name:'MNCTV', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/New_MNCTV_logo.svg/200px-New_MNCTV_logo.svg.png', group:'Hiburan', groupSlug:'entertainment', country:'ID', url:'https://streaming.rctiplus.com/6/master.m3u8'},
-    {id:'gtv', name:'GTV', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ee/GTV_2019.svg/200px-GTV_2019.svg.png', group:'Hiburan', groupSlug:'entertainment', country:'ID', url:'https://streaming.rctiplus.com/1/master.m3u8'},
-    {id:'metro', name:'Metro TV', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Metro_TV_logo.svg/200px-Metro_TV_logo.svg.png', group:'Berita', groupSlug:'news', country:'ID', url:'https://streaming4.metro.tv/live/smil:metrotv.smil/chunklist.m3u8'},
-    {id:'cnnidn', name:'CNN Indonesia', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/CNN_Indonesia.svg/200px-CNN_Indonesia.svg.png', group:'Berita', groupSlug:'news', country:'ID', url:'https://cnidn-livedai.akamaized.net/hls/live/2038028/cnn_id/master.m3u8'},
-    {id:'tvone', name:'tvOne', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Tvone_2017.svg/200px-Tvone_2017.svg.png', group:'Berita', groupSlug:'news', country:'ID', url:'https://live.tvone.co.id/stream/live.m3u8'},
-    {id:'trans7', name:'Trans 7', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Trans7.svg/200px-Trans7.svg.png', group:'Hiburan', groupSlug:'entertainment', country:'ID', url:'https://streaming2.transtv.co.id:1936/trans7/trans7/playlist.m3u8'},
-    {id:'transtv', name:'Trans TV', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Trans_TV.svg/200px-Trans_TV.svg.png', group:'Hiburan', groupSlug:'entertainment', country:'ID', url:'https://streaming2.transtv.co.id:1936/transtv/transtv/playlist.m3u8'},
-    {id:'indosiar', name:'Indosiar', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Indosiar.svg/200px-Indosiar.svg.png', group:'Hiburan', groupSlug:'entertainment', country:'ID', url:'https://5d7b87b22f85a.streamlock.net:443/indosiar/indosiar/playlist.m3u8'},
-    {id:'bbc', name:'BBC World', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/BBC_World_News_2022.svg/200px-BBC_World_News_2022.svg.png', group:'Berita', groupSlug:'news', country:'GB', url:'https://vs-hls-push-ww-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_world_service/pc_hd.m3u8'},
-    {id:'aljazeera', name:'Al Jazeera', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Al_Jazeera_Logo.svg/200px-Al_Jazeera_Logo.svg.png', group:'Berita', groupSlug:'news', country:'QA', url:'https://live-hls-web-aje.getaj.net/AJE/index.m3u8'},
+    {id:'TVRI.id@HD', name:'TVRI Nasional', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/TVRILogo2019.svg/200px-TVRILogo2019.svg.png', group:'Umum', groupSlug:'general', country:'ID', url:'https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8'},
+    {id:'TransTV.id@SD', name:'Trans TV', logo:'https://upload.wikimedia.org/wikipedia/en/thumb/6/62/Trans_TV_2013.svg/200px-Trans_TV_2013.svg.png', group:'Umum', groupSlug:'general', country:'ID', url:'https://video.detik.com/transtv/smil:transtv.smil/index.m3u8'},
+    {id:'Trans7.id@SD', name:'Trans 7', logo:'https://i.imgur.com/fAbGImS.png', group:'Umum', groupSlug:'general', country:'ID', url:'https://video.detik.com/trans7/smil:trans7.smil/index.m3u8'},
+    {id:'tvOne.id@SD', name:'tvOne', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/TvOne_2023.svg/200px-TvOne_2023.svg.png', group:'Berita', groupSlug:'news', country:'ID', url:'http://202.80.222.20/cdn/iptv/Tvod/001/channel2000018/1024.m3u8'},
+    {id:'MetroTV.id@SD', name:'Metro TV', logo:'https://i.imgur.com/QnU70NI.png', group:'Berita', groupSlug:'news', country:'ID', url:'https://edge.medcom.id/live-edge/smil:metro.smil/playlist.m3u8'},
+    {id:'CNBCIndonesia.id@SD', name:'CNBC Indonesia', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/CNBC_Indonesia_2025.svg/200px-CNBC_Indonesia_2025.svg.png', group:'Bisnis', groupSlug:'business', country:'ID', url:'https://live.cnbcindonesia.com/livecnbc/smil:cnbctv.smil/master.m3u8'},
+    {id:'NusantaraTV.id@SD', name:'Nusantara TV', logo:'https://i.imgur.com/viun5hj.png', group:'Umum', groupSlug:'general', country:'ID', url:'https://nusantaratv.siar.us/nusantaratv/live/playlist.m3u8'},
+    {id:'GarudaTV.id@SD', name:'Garuda TV', logo:'https://i.imgur.com/sXsAcZ3.png', group:'Umum', groupSlug:'general', country:'ID', url:'https://hgmtv.com:19360/garudatvlivestreaming/garudatvlivestreaming.m3u8'},
+    {id:'RRINet.id@SD', name:'RRI Net', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/RRI_NET_2023.svg/200px-RRI_NET_2023.svg.png', group:'Umum', groupSlug:'general', country:'ID', url:'https://private-streaming.rri.go.id/memfs/6f77c7b5-feb2-4935-9f89-e7e9fca0a54a_output_0.m3u8'},
+    {id:'DAAITV.id@SD', name:'DAAI TV', logo:'https://i.imgur.com/YC7JCHo.png', group:'Religi', groupSlug:'religious', country:'ID', url:'https://pull.daaiplus.com/live-DAAIPLUS/live-DAAIPLUS_HD.m3u8'},
+    {id:'BBCNews.uk', name:'BBC News', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/BBC_World_News_2022.svg/200px-BBC_World_News_2022.svg.png', group:'Berita', groupSlug:'news', country:'GB', url:'https://vs-hls-push-ww-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_news_channel_hd/mobile_wifi_main_hd_abr_v2.m3u8'},
+    {id:'AlJazeera.qa', name:'Al Jazeera', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Al_Jazeera_Logo.svg/200px-Al_Jazeera_Logo.svg.png', group:'Berita', groupSlug:'news', country:'QA', url:'https://live-hls-web-ajm.getaj.net/AJM/index.m3u8'},
   ];
 }
 
