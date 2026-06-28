@@ -18,7 +18,7 @@
 // ════════════════════════════════════════════
 const CFG = {
   // App/Cache version for cache busting
-  CACHE_VERSION:    'v4.1',
+  CACHE_VERSION:    'v4.2',
   // iptv-org playlist base URLs (from PLAYLISTS.md)
   PLAYLIST_BASE:    'https://iptv-org.github.io/iptv',
   // API endpoints
@@ -1491,6 +1491,23 @@ async function loadCustomM3UUrl(url) {
   if (!url) return;
   
   let targetUrl = url.trim();
+
+  // Deteksi jika user memasukkan link GitHub Pages (*.github.io)
+  const ghPagesRegex = /^https?:\/\/([^\.]+)\.github\.io\/?([^\/]+)?\/?$/i;
+  const pagesMatch = targetUrl.match(ghPagesRegex);
+  if (pagesMatch) {
+    let owner = pagesMatch[1];
+    let repo = pagesMatch[2] || '';
+    
+    // Kasus khusus untuk organisasi iptv-org
+    if (owner === 'iptv-org' && (!repo || repo === 'iptv')) {
+      repo = 'iptv';
+    } else if (!repo) {
+      repo = `${owner}.github.io`;
+    }
+    
+    targetUrl = `https://github.com/${owner}/${repo}`;
+  }
   
   // Deteksi jika user memasukkan link repositori GitHub utama (Landing Page)
   const ghRepoRegex = /^https?:\/\/(?:www\.)?github\.com\/([^\/]+)\/([^\/]+?)(?:\.git)?\/?$/i;
@@ -1507,8 +1524,10 @@ async function loadCustomM3UUrl(url) {
       // Cari file M3U/M3U8 di root
       const m3uFiles = files.filter(f => f.type === 'file' && (f.name.endsWith('.m3u') || f.name.endsWith('.m3u8')));
       if (m3uFiles.length > 0) {
-        // Prioritaskan file yang mengandung kata "playlist"
-        const selectedFile = m3uFiles.find(f => f.name.toLowerCase().includes('playlist')) || m3uFiles[0];
+        // Prioritaskan file yang mengandung kata "playlist" atau "index"
+        const selectedFile = m3uFiles.find(f => f.name.toLowerCase().includes('playlist')) ||
+                             m3uFiles.find(f => f.name.toLowerCase().includes('index')) ||
+                             m3uFiles[0];
         showToast(`✅ Ditemukan: ${selectedFile.name}. Memuat siaran...`);
         await loadCustomM3UUrl(selectedFile.download_url);
         return;
