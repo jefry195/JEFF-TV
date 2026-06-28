@@ -701,6 +701,26 @@ button{cursor:pointer;font-family:'Outfit',sans-serif}
   border-color: var(--accent);
   outline: none;
 }
+.custom-select-el {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12.5px;
+  outline: none;
+  transition: border-color var(--t);
+  cursor: pointer;
+}
+.custom-select-el:focus {
+  border-color: var(--accent);
+}
+.custom-select-el option {
+  background: var(--bg2);
+  color: var(--text);
+}
 .btn-primary-sm {
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   color: #fff;

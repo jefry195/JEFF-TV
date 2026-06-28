@@ -182,13 +182,24 @@
       </h3>
       <div class="custom-playlist-inputs">
         <div class="input-group">
+          <label class="input-lbl" for="m3u-preset-select">Gunakan Preset Playlist (GitHub)</label>
+          <select id="m3u-preset-select" class="custom-select-el">
+            <option value="">-- Pilih Preset Playlist --</option>
+            <option value="https://furymazu.github.io/iptv-channel-indonesia/indonesiaiptv.m3u">🇮🇩 IPTV Indonesia (furymazu)</option>
+            <option value="https://mgi24.github.io/tvdigital/idwork.m3u">🇮🇩 TV Digital Indo (mgi24)</option>
+            <option value="https://iptv-org.github.io/iptv/countries/id.m3u">🇮🇩 Official ID (iptv-org)</option>
+            <option value="https://raw.githubusercontent.com/dhasap/dhanytv/main/dhanytv.m3u">🌎 DhanyTV Global & Indo</option>
+          </select>
+        </div>
+        <div class="divider-text"><span>ATAU MASUKKAN URL</span></div>
+        <div class="input-group">
           <label class="input-lbl" for="m3u-url-input">Link URL Playlist M3U</label>
           <div class="input-row">
             <input type="url" id="m3u-url-input" placeholder="https://example.com/playlist.m3u" autocomplete="off" />
             <button id="load-m3u-url-btn" class="btn-primary-sm">Load</button>
           </div>
         </div>
-        <div class="divider-text"><span>ATAU</span></div>
+        <div class="divider-text"><span>ATAU PILIH FILE</span></div>
         <div class="input-group">
           <label class="file-upload-label" for="m3u-file-input">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
@@ -201,33 +212,6 @@
         <p>Terisi: <strong id="custom-ch-count">0</strong> saluran kustom</p>
         <button id="clear-custom-playlist-btn" class="btn-ghost danger-ghost btn-sm-full">Hapus Playlist Kustom</button>
       </div>
-    </div>
-
-    <!-- Status Filter -->
-    <div class="sidebar-sec">
-      <h3 class="sec-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        Status Siaran
-      </h3>
-      <div class="status-filter-btns">
-        <button class="sfbtn active" data-status="all" id="sf-all">
-          <span class="sfbtn-dot all"></span> Semua
-        </button>
-        <button class="sfbtn" data-status="online" id="sf-online">
-          <span class="sfbtn-dot online"></span> Online
-        </button>
-        <button class="sfbtn" data-status="offline" id="sf-offline">
-          <span class="sfbtn-dot offline"></span> Offline
-        </button>
-      </div>
-      <div class="check-progress-wrap hidden" id="check-progress-wrap">
-        <div class="check-progress-bar" id="check-progress-bar"></div>
-        <span id="check-progress-text">Memeriksa stream...</span>
-      </div>
-      <button id="check-streams-btn" class="check-btn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
-        Cek Status Stream
-      </button>
     </div>
 
     <!-- Favorites -->

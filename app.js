@@ -18,7 +18,7 @@
 // ════════════════════════════════════════════
 const CFG = {
   // App/Cache version for cache busting
-  CACHE_VERSION:    'v3.2',
+  CACHE_VERSION:    'v3.4',
   // iptv-org playlist base URLs (from PLAYLISTS.md)
   PLAYLIST_BASE:    'https://iptv-org.github.io/iptv',
   // API endpoints
@@ -123,13 +123,6 @@ function initDOM() {
     countrySearch:          q('country-search'),
     catSec:         q('cat-sec'),
     catList:        q('category-list'),
-    sfAll:          q('sf-all'),
-    sfOnline:       q('sf-online'),
-    sfOffline:      q('sf-offline'),
-    checkBtn:       q('check-streams-btn'),
-    checkWrap:      q('check-progress-wrap'),
-    checkBar:       q('check-progress-bar'),
-    checkTxt:       q('check-progress-text'),
     favList:        q('fav-list'),
     favCount:       q('fav-count'),
     totalChs:       q('total-channels'),
@@ -170,6 +163,7 @@ function initDOM() {
     customPlaylistSec:      q('custom-playlist-sec'),
     m3uUrlInput:            q('m3u-url-input'),
     loadM3uUrlBtn:          q('load-m3u-url-btn'),
+    m3uPresetSelect:        q('m3u-preset-select'),
     m3uFileInput:           q('m3u-file-input'),
     customPlaylistInfo:     q('custom-playlist-info'),
     customChCount:          q('custom-ch-count'),
@@ -315,10 +309,14 @@ async function loadAPI(forceRefresh = false) {
   }
 
   setSplashStatus('Memuat data saluran TV...');
-  const [chData, stData, logoData] = await Promise.all([
+  const [chData, stData, logoData, idTxt] = await Promise.all([
     fetchJSON(CFG.CHANNELS_API),
     fetchJSON(CFG.STREAMS_API),
     fetchJSON(CFG.LOGOS_API),
+    fetchText('https://furymazu.github.io/iptv-channel-indonesia/indonesiaiptv.m3u').catch(e => {
+      console.warn('[JeffTV] Failed to fetch furymazu playlist, using global only:', e);
+      return '';
+    })
   ]);
   setSplashStatus(`Memproses ${stData.length.toLocaleString()} stream...`);
 
@@ -334,6 +332,33 @@ async function loadAPI(forceRefresh = false) {
 
   const seen = new Set();
   const result = [];
+
+  // Merge working Indonesian channels from furymazu first
+  if (idTxt && idTxt.includes('#EXTINF')) {
+    try {
+      const idChs = parseM3U(idTxt);
+      idChs.forEach(c => {
+        if (!c.url) return;
+        if (seen.has(c.url)) return;
+        seen.add(c.url);
+        
+        const grp = CFG.CAT_LABELS[c.groupSlug] || c.group;
+        result.push({
+          id: c.id || c.name,
+          name: c.name,
+          logo: c.logo || '',
+          group: grp,
+          groupSlug: c.groupSlug,
+          country: 'ID',
+          language: c.language || 'ind',
+          url: c.url,
+        });
+      });
+      console.log(`[JeffTV] Merged ${result.length} working Indonesian channels from furymazu`);
+    } catch(err) {
+      console.warn('[JeffTV] Failed to parse furymazu playlist:', err);
+    }
+  }
   for (const st of stData) {
     if (!st.url || !st.channel) continue;
     if (seen.has(st.url)) continue;
@@ -380,8 +405,38 @@ async function loadAPI(forceRefresh = false) {
   return result;
 }
 
-/* Load by country M3U */
 async function loadCountryM3U(code) {
+  if (code.toUpperCase() === 'ID') {
+    // Coba memuat dari repositori komunitas Indonesia yang aktif
+    try {
+      setSplashStatus('Memuat playlist Indonesia (furymazu)...');
+      const txt = await fetchText('https://furymazu.github.io/iptv-channel-indonesia/indonesiaiptv.m3u');
+      if (txt.includes('#EXTINF')) {
+        const chs = parseM3U(txt);
+        if (chs.length > 0) {
+          console.log('[JeffTV] Loaded country ID from furymazu');
+          return chs.map(c => ({ ...c, country: 'ID' }));
+        }
+      }
+    } catch(e) {
+      console.warn('[JeffTV] Failed to load furymazu, trying mgi24:', e);
+    }
+
+    try {
+      setSplashStatus('Memuat playlist Indonesia (mgi24)...');
+      const txt = await fetchText('https://mgi24.github.io/tvdigital/idwork.m3u');
+      if (txt.includes('#EXTINF')) {
+        const chs = parseM3U(txt);
+        if (chs.length > 0) {
+          console.log('[JeffTV] Loaded country ID from mgi24');
+          return chs.map(c => ({ ...c, country: 'ID' }));
+        }
+      }
+    } catch(e) {
+      console.warn('[JeffTV] Failed to load mgi24, trying global backup:', e);
+    }
+  }
+
   const url = `${CFG.PLAYLIST_BASE}/countries/${code.toLowerCase()}.m3u`;
   setSplashStatus(`Memuat playlist ${code}...`);
   const txt = await fetchText(url);
@@ -427,11 +482,11 @@ function processChannels(chs) {
 /* Fallback channels when everything fails */
 function fallbackChannels() {
   return [
-    {id:'TVRI.id@HD', name:'TVRI Nasional', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/TVRILogo2019.svg/200px-TVRILogo2019.svg.png', group:'Umum', groupSlug:'general', country:'ID', url:'https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8'},
-    {id:'TransTV.id@SD', name:'Trans TV', logo:'https://upload.wikimedia.org/wikipedia/en/thumb/6/62/Trans_TV_2013.svg/200px-Trans_TV_2013.svg.png', group:'Umum', groupSlug:'general', country:'ID', url:'https://video.detik.com/transtv/smil:transtv.smil/index.m3u8'},
-    {id:'Trans7.id@SD', name:'Trans 7', logo:'https://i.imgur.com/fAbGImS.png', group:'Umum', groupSlug:'general', country:'ID', url:'https://video.detik.com/trans7/smil:trans7.smil/index.m3u8'},
+    {id:'TVRI.id@HD', name:'TVRI Nasional', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/TVRILogo2019.svg/200px-TVRILogo2019.svg.png', group:'Umum', groupSlug:'general', country:'ID', url:'http://ott.tvri.co.id/Content/HLS/Live/Channel(TVRINasional)/index.m3u8'},
+    {id:'TransTV.id@SD', name:'Trans TV', logo:'https://upload.wikimedia.org/wikipedia/en/thumb/6/62/Trans_TV_2013.svg/200px-Trans_TV_2013.svg.png', group:'Umum', groupSlug:'general', country:'ID', url:'http://210.210.155.35/qwr9ew/s/s01/index.m3u8'},
+    {id:'Trans7.id@SD', name:'Trans 7', logo:'https://i.imgur.com/fAbGImS.png', group:'Umum', groupSlug:'general', country:'ID', url:'http://210.210.155.35/qwr9ew/s/s02/index.m3u8'},
     {id:'tvOne.id@SD', name:'tvOne', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/TvOne_2023.svg/200px-TvOne_2023.svg.png', group:'Berita', groupSlug:'news', country:'ID', url:'http://202.80.222.20/cdn/iptv/Tvod/001/channel2000018/1024.m3u8'},
-    {id:'MetroTV.id@SD', name:'Metro TV', logo:'https://i.imgur.com/QnU70NI.png', group:'Berita', groupSlug:'news', country:'ID', url:'https://edge.medcom.id/live-edge/smil:metro.smil/playlist.m3u8'},
+    {id:'MetroTV.id@SD', name:'Metro TV', logo:'https://i.imgur.com/QnU70NI.png', group:'Berita', groupSlug:'news', country:'ID', url:'http://edge.metrotvnews.com:1935/live-edge/smil:metro.smil/chunklist_w2006790992_b1492000_sleng.m3u8'},
     {id:'CNBCIndonesia.id@SD', name:'CNBC Indonesia', logo:'https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/CNBC_Indonesia_2025.svg/200px-CNBC_Indonesia_2025.svg.png', group:'Bisnis', groupSlug:'business', country:'ID', url:'https://live.cnbcindonesia.com/livecnbc/smil:cnbctv.smil/master.m3u8'},
     {id:'NusantaraTV.id@SD', name:'Nusantara TV', logo:'https://i.imgur.com/viun5hj.png', group:'Umum', groupSlug:'general', country:'ID', url:'https://nusantaratv.siar.us/nusantaratv/live/playlist.m3u8'},
     {id:'GarudaTV.id@SD', name:'Garuda TV', logo:'https://i.imgur.com/sXsAcZ3.png', group:'Umum', groupSlug:'general', country:'ID', url:'https://hgmtv.com:19360/garudatvlivestreaming/garudatvlivestreaming.m3u8'},
@@ -455,10 +510,10 @@ function fallbackChannels() {
  */
 async function checkStreamURL(url) {
   const timeout = CFG.CHECK_TIMEOUT;
-  const isHLS = /\.m3u8/i.test(url);
+  const isHLS = /\.m3u8/i.test(url) || url.includes('m3u8');
 
   if (isHLS) {
-    // Cara paling akurat: fetch manifest via CORS proxy lalu cek isinya
+    // 1. Coba memuat manifest via CORS proxy (paling akurat jika berhasil)
     for (const proxy of CFG.PROXIES) {
       try {
         const ctrl = new AbortController();
@@ -470,44 +525,41 @@ async function checkStreamURL(url) {
         clearTimeout(id);
         if (r.ok) {
           const txt = await r.text();
-          // Valid M3U8 harus mengandung tag ini
+          // Manifest HLS harus memiliki tag identifikasi ini
           if (txt.includes('#EXTM3U') || txt.includes('#EXT-X-') || txt.includes('EXTINF')) {
             return 'online';
           }
-          // Response ada tapi bukan M3U8 valid
-          return 'offline';
         }
-        // HTTP error (403, 404, 500, dll) = offline
-        if (r.status === 403 || r.status === 404 || r.status >= 500) return 'offline';
+        // Jika status error (seperti 403 atau 500 dari proxy), jangan langsung offline, coba proxy berikutnya
       } catch(e) {
-        if (e.name === 'AbortError') return 'offline'; // Timeout = offline
-        // Proxy error, coba proxy berikutnya
+        if (e.name === 'AbortError') return 'offline'; // Timeout global = offline
+        // Coba proxy berikutnya jika network error pada proxy
         continue;
       }
     }
-    // Semua proxy gagal - mungkin blocked tapi bukan berarti offline
-    // Coba direct dengan no-cors sebagai last resort
+  }
+
+  // 2. Fallback: Coba direct connection tanpa proxy dengan no-cors.
+  // Ini sangat berguna jika saluran memblokir IP proxy luar negeri (geoblock) tetapi bisa diakses IP lokal Indonesia.
+  try {
+    const ctrl = new AbortController();
+    const id = setTimeout(() => ctrl.abort(), 4000);
+    // Coba HEAD request langsung terlebih dahulu (cepat dan hemat kuota)
+    await fetch(url, { method: 'HEAD', signal: ctrl.signal, mode: 'no-cors' });
+    clearTimeout(id);
+    return 'online'; // Server merespons (opaque response)
+  } catch(e) {
+    if (e.name === 'AbortError') return 'offline';
+    
+    // Beberapa server menolak HEAD request, coba GET request dengan no-cors sebagai last resort
     try {
       const ctrl = new AbortController();
-      const id = setTimeout(() => ctrl.abort(), 3000);
-      await fetch(url, { method: 'HEAD', signal: ctrl.signal, mode: 'no-cors' });
+      const id = setTimeout(() => ctrl.abort(), 4000);
+      await fetch(url, { method: 'GET', signal: ctrl.signal, mode: 'no-cors' });
       clearTimeout(id);
-      return 'online'; // server merespons (opaque = tidak bisa baca isi)
-    } catch(e) {
-      return e.name === 'AbortError' ? 'offline' : 'offline';
-    }
-  } else {
-    // Non-HLS: direct HEAD request
-    try {
-      const ctrl = new AbortController();
-      const id = setTimeout(() => ctrl.abort(), timeout);
-      const r = await fetch(url, { method: 'HEAD', signal: ctrl.signal });
-      clearTimeout(id);
-      return r.ok ? 'online' : 'offline';
-    } catch(e) {
-      // CORS block ≠ offline untuk direct streams
-      if (e.name === 'AbortError') return 'offline';
-      return 'online'; // CORS block tapi server ada
+      return 'online';
+    } catch(e2) {
+      return 'offline';
     }
   }
 }
@@ -859,7 +911,7 @@ function renderChannels() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
           Cek Status Stream Sekarang
         </button>
-        <button onclick="document.getElementById('sf-all').click()" class="btn-ghost" style="margin-top:4px">
+        <button onclick="clearFilters()" class="btn-ghost" style="margin-top:4px">
           Tampilkan Semua Saluran
         </button>
       `;
@@ -872,7 +924,7 @@ function renderChannels() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
           Cek Status Stream
         </button>
-        <button onclick="document.getElementById('sf-all').click()" class="btn-ghost" style="margin-top:4px">
+        <button onclick="clearFilters()" class="btn-ghost" style="margin-top:4px">
           Tampilkan Semua Saluran
         </button>
       `;
@@ -1360,6 +1412,8 @@ async function loadCategoryMode(slug) {
 // ════════════════════════════════════════════
 async function loadCustomM3UUrl(url) {
   if (!url) return;
+  S.country = '';
+  S.category = '';
   D.skeleton.classList.remove('hidden');
   D.grid.classList.add('hidden');
   D.empty.classList.add('hidden');
@@ -1392,6 +1446,8 @@ async function loadCustomM3UUrl(url) {
 
 function loadCustomM3UFile(file) {
   if (!file) return;
+  S.country = '';
+  S.category = '';
   const reader = new FileReader();
   D.skeleton.classList.remove('hidden');
   D.grid.classList.add('hidden');
@@ -1432,6 +1488,7 @@ async function clearCustomPlaylist() {
   S.customPlaylistLoaded = false;
   try { localStorage.removeItem('jftv_custom_url'); } catch(e) {}
   D.m3uUrlInput.value = '';
+  if (D.m3uPresetSelect) D.m3uPresetSelect.value = '';
   D.m3uFileInput.value = '';
   D.customPlaylistInfo.classList.add('hidden');
   showToast('🧹 Playlist kustom dihapus');
@@ -1734,6 +1791,7 @@ function setupEvents() {
       } else if (S.mode === 'custom') {
         D.countrySec.style.display='none';
         D.catSec.style.display='none';
+        S.country = ''; // Reset country filter for custom playlists
         D.customPlaylistSec.classList.remove('hidden');
         
         // Auto-load custom playlist if URL exists
@@ -1795,21 +1853,7 @@ function setupEvents() {
     renderCountryOptions(e.target.value);
   });
 
-  // Status filter
-  [D.sfAll, D.sfOnline, D.sfOffline].forEach(btn => {
-    btn?.addEventListener('click', () => {
-      [D.sfAll, D.sfOnline, D.sfOffline].forEach(b => b?.classList.remove('active'));
-      btn.classList.add('active');
-      S.statusFilter = btn.dataset.status;
-      applyFilters();
-    });
-  });
 
-  // Check streams
-  D.checkBtn?.addEventListener('click', () => {
-    if (S.checking) { S.checkAbort = true; return; }
-    checkAllStreams(S.filtered.slice(0, 200)); // check up to 200
-  });
 
   // Load more
   D.loadmoreBtn?.addEventListener('click', () => {
@@ -1961,6 +2005,13 @@ function setupEvents() {
   D.loadM3uUrlBtn?.addEventListener('click', () => loadCustomM3UUrl(D.m3uUrlInput.value.trim()));
   D.m3uUrlInput?.addEventListener('keydown', e => {
     if (e.key === 'Enter') loadCustomM3UUrl(D.m3uUrlInput.value.trim());
+  });
+  D.m3uPresetSelect?.addEventListener('change', e => {
+    const val = e.target.value;
+    if (val) {
+      D.m3uUrlInput.value = val;
+      loadCustomM3UUrl(val);
+    }
   });
   D.m3uFileInput?.addEventListener('change', e => {
     if (e.target.files.length) loadCustomM3UFile(e.target.files[0]);
@@ -2136,14 +2187,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('🎉 Aplikasi JeffTV berhasil dipasang!');
   });
 
-  // Update check button text
-  if (D.checkBtn) {
-    D.checkBtn.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
-      Cek Status (${CFG.AUTO_CHECK_N} pertama)
-    `;
-    D.checkBtn.onclick = startCheck;
-  }
+
 
   init().catch(e => {
     console.error(e);
