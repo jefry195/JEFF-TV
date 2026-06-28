@@ -18,7 +18,7 @@
 // ════════════════════════════════════════════
 const CFG = {
   // App/Cache version for cache busting
-  CACHE_VERSION:    'v3.5',
+  CACHE_VERSION:    'v3.6',
   // iptv-org playlist base URLs (from PLAYLISTS.md)
   PLAYLIST_BASE:    'https://iptv-org.github.io/iptv',
   // API endpoints
@@ -1079,6 +1079,38 @@ const HLS_CONFIG = {
 let _streamTimer;
 let _autoSkipTimer;
 
+function updateMediaSession(ch) {
+  if ('mediaSession' in navigator && ch) {
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: ch.name,
+        artist: ch.group || 'JeffTV',
+        album: 'IPTV Indonesia',
+        artwork: [
+          { src: ch.logo || 'https://raw.githubusercontent.com/jefry195/JEFF-TV/main/icon-512.png', sizes: '512x512', type: 'image/png' }
+        ]
+      });
+
+      const actions = {
+        'play': () => { D.video?.play().catch(() => {}); },
+        'pause': () => { D.video?.pause(); },
+        'previoustrack': () => { playPrev(); },
+        'nexttrack': () => { playNext(); }
+      };
+
+      for (const [action, handler] of Object.entries(actions)) {
+        try {
+          navigator.mediaSession.setActionHandler(action, handler);
+        } catch(err) {
+          // ignore if action is unsupported in browser
+        }
+      }
+    } catch(e) {
+      console.warn('[JeffTV] Media Session error', e);
+    }
+  }
+}
+
 function playChannel(ch) {
   clearTimeout(_autoSkipTimer);
   if (!S.isAutoSkipping) {
@@ -1087,6 +1119,7 @@ function playChannel(ch) {
   }
 
   S.currentCh = ch;
+  updateMediaSession(ch);
   S.retryN = 0;
   S.streamErrors = 0;
 
@@ -2023,6 +2056,16 @@ function setupEvents() {
     D.pLoadTxt.textContent = 'Reconnect...';
     D.pLoading.classList.remove('hidden');
   });
+
+  // Sync Media Session playbackState
+  if ('mediaSession' in navigator) {
+    D.video?.addEventListener('play', () => {
+      navigator.mediaSession.playbackState = 'playing';
+    });
+    D.video?.addEventListener('pause', () => {
+      navigator.mediaSession.playbackState = 'paused';
+    });
+  }
 
   // Keyboard shortcuts
   document.addEventListener('keydown', e => {
