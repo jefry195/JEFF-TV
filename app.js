@@ -18,7 +18,7 @@
 // ════════════════════════════════════════════
 const CFG = {
   // App/Cache version for cache busting
-  CACHE_VERSION:    'v3.4',
+  CACHE_VERSION:    'v3.5',
   // iptv-org playlist base URLs (from PLAYLISTS.md)
   PLAYLIST_BASE:    'https://iptv-org.github.io/iptv',
   // API endpoints
@@ -1077,8 +1077,15 @@ const HLS_CONFIG = {
 };
 
 let _streamTimer;
+let _autoSkipTimer;
 
 function playChannel(ch) {
+  clearTimeout(_autoSkipTimer);
+  if (!S.isAutoSkipping) {
+    S.autoSkipCount = 0;
+    S.autoSkipStartCh = ch;
+  }
+
   S.currentCh = ch;
   S.retryN = 0;
   S.streamErrors = 0;
@@ -1287,8 +1294,6 @@ function markOfflineAndError() {
   clearTimeout(_streamTimer);
   clearInterval(_stallTimer);
   D.pLoading.classList.add('hidden');
-  D.pError.classList.remove('hidden');
-  D.pErrMsg.textContent = 'Stream tidak tersedia atau sedang offline.';
 
   if (S.currentCh) {
     S.streamStatus[S.currentCh.url] = 'offline';
@@ -1297,6 +1302,33 @@ function markOfflineAndError() {
     updatePlayerStatusTag('offline');
     try { sessionStorage.setItem('jftv_status', JSON.stringify(S.streamStatus)); } catch(e) {}
   }
+
+  // Auto-skip logic
+  if (S.filtered && S.filtered.length > 1) {
+    if (!S.autoSkipStartCh) {
+      S.autoSkipStartCh = S.currentCh;
+    }
+    S.autoSkipCount = (S.autoSkipCount || 0) + 1;
+
+    // Berhenti jika sudah mencoba seluruh daftar saluran untuk menghindari loop tak terbatas
+    if (S.autoSkipCount < S.filtered.length) {
+      showToast('⚠️ Saluran offline, memutar saluran berikutnya dalam 1.5 detik...');
+      S.isAutoSkipping = true;
+      _autoSkipTimer = setTimeout(() => {
+        S.isAutoSkipping = false;
+        playNext();
+      }, 1500);
+      return;
+    }
+  }
+
+  // Reset auto-skip jika terpaksa berhenti atau selesai loop
+  S.isAutoSkipping = false;
+  S.autoSkipCount = 0;
+  S.autoSkipStartCh = null;
+
+  D.pError.classList.remove('hidden');
+  D.pErrMsg.textContent = 'Stream tidak tersedia atau sedang offline.';
 }
 
 function updatePlayerStatusTag(status) {
@@ -1315,6 +1347,11 @@ function updatePlayerStatusTag(status) {
 
 function closePlayer() {
   clearTimeout(_streamTimer);
+  clearTimeout(_autoSkipTimer);
+  S.isAutoSkipping = false;
+  S.autoSkipCount = 0;
+  S.autoSkipStartCh = null;
+
   clearInterval(_stallTimer);
   if (S.hlsInst) { S.hlsInst.destroy(); S.hlsInst = null; }
   const vid = D.video;
