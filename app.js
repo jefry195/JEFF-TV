@@ -18,7 +18,7 @@
 // ════════════════════════════════════════════
 const CFG = {
   // App/Cache version for cache busting
-  CACHE_VERSION:    'v4.0',
+  CACHE_VERSION:    'v4.1',
   // iptv-org playlist base URLs (from PLAYLISTS.md)
   PLAYLIST_BASE:    'https://iptv-org.github.io/iptv',
   // API endpoints
@@ -1492,6 +1492,35 @@ async function loadCustomM3UUrl(url) {
   
   let targetUrl = url.trim();
   
+  // Deteksi jika user memasukkan link repositori GitHub utama (Landing Page)
+  const ghRepoRegex = /^https?:\/\/(?:www\.)?github\.com\/([^\/]+)\/([^\/]+?)(?:\.git)?\/?$/i;
+  const match = targetUrl.match(ghRepoRegex);
+  if (match) {
+    const owner = match[1];
+    const repo = match[2];
+    showToast('🔍 Mendeteksi repositori GitHub, mencari file playlist...');
+    try {
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents`);
+      if (!response.ok) throw new Error('Repositori tidak ditemukan atau rate-limit API tercapai');
+      const files = await response.json();
+      
+      // Cari file M3U/M3U8 di root
+      const m3uFiles = files.filter(f => f.type === 'file' && (f.name.endsWith('.m3u') || f.name.endsWith('.m3u8')));
+      if (m3uFiles.length > 0) {
+        // Prioritaskan file yang mengandung kata "playlist"
+        const selectedFile = m3uFiles.find(f => f.name.toLowerCase().includes('playlist')) || m3uFiles[0];
+        showToast(`✅ Ditemukan: ${selectedFile.name}. Memuat siaran...`);
+        await loadCustomM3UUrl(selectedFile.download_url);
+        return;
+      } else {
+        throw new Error('Tidak ada file .m3u/.m3u8 di root repositori ini');
+      }
+    } catch(err) {
+      console.warn('[JeffTV] GitHub API auto-resolve failed:', err);
+      showToast(`⚠️ Pencarian otomatis gagal: ${err.message}`);
+    }
+  }
+
   // Deteksi dan konversi otomatis jika user menyalin link viewer file GitHub (blob)
   if (targetUrl.includes('github.com') && targetUrl.includes('/blob/')) {
     targetUrl = targetUrl.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
