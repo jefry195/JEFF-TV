@@ -18,7 +18,7 @@
 // ════════════════════════════════════════════
 const CFG = {
   // App/Cache version for cache busting
-  CACHE_VERSION:    'v3.8',
+  CACHE_VERSION:    'v3.9',
   // iptv-org playlist base URLs (from PLAYLISTS.md)
   PLAYLIST_BASE:    'https://iptv-org.github.io/iptv',
   // API endpoints
@@ -168,6 +168,13 @@ function initDOM() {
     customPlaylistInfo:     q('custom-playlist-info'),
     customChCount:          q('custom-ch-count'),
     clearCustomPlaylistBtn: q('clear-custom-playlist-btn'),
+    addPresetToggle:        q('add-preset-toggle'),
+    deletePresetBtn:        q('delete-preset-btn'),
+    addPresetFormWrap:      q('add-preset-form-wrap'),
+    newPresetName:          q('new-preset-name'),
+    newPresetUrl:           q('new-preset-url'),
+    saveNewPresetBtn:       q('save-new-preset-btn'),
+    cancelNewPresetBtn:     q('cancel-new-preset-btn'),
     // History
     clearHistoryBtn:        q('clear-history-btn'),
     historyList:            q('history-list'),
@@ -1574,6 +1581,105 @@ async function clearCustomPlaylist() {
 }
 
 // ════════════════════════════════════════════
+// CUSTOM PRESETS MANAGEMENT
+// ════════════════════════════════════════════
+function loadCustomPresets() {
+  if (!D.m3uPresetSelect) return;
+  
+  // Hapus opsi kustom sebelumnya
+  Array.from(D.m3uPresetSelect.querySelectorAll('option[data-custom="true"]')).forEach(opt => opt.remove());
+
+  let presets = [];
+  try {
+    const data = localStorage.getItem('jftv_custom_presets');
+    if (data) presets = JSON.parse(data);
+  } catch(e) {
+    console.error('Gagal memuat preset kustom:', e);
+  }
+
+  presets.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.url;
+    opt.textContent = `👤 ${p.name}`;
+    opt.setAttribute('data-custom', 'true');
+    D.m3uPresetSelect.appendChild(opt);
+  });
+}
+
+function saveNewPreset() {
+  const name = D.newPresetName.value.trim();
+  const url = D.newPresetUrl.value.trim();
+
+  if (!name || !url) {
+    showToast('⚠️ Nama dan URL preset wajib diisi!');
+    return;
+  }
+
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    showToast('⚠️ URL preset harus valid (dimulai dengan http:// atau https://)!');
+    return;
+  }
+
+  let presets = [];
+  try {
+    const data = localStorage.getItem('jftv_custom_presets');
+    if (data) presets = JSON.parse(data);
+  } catch(e) {}
+
+  // Cek duplikasi URL
+  if (presets.some(p => p.url.toLowerCase() === url.toLowerCase())) {
+    showToast('⚠️ URL preset ini sudah ada!');
+    return;
+  }
+
+  presets.push({ name, url });
+
+  try {
+    localStorage.setItem('jftv_custom_presets', JSON.stringify(presets));
+  } catch(e) {
+    showToast('⚠️ Gagal menyimpan ke penyimpanan lokal.');
+    return;
+  }
+
+  loadCustomPresets();
+  
+  // Reset form
+  D.newPresetName.value = '';
+  D.newPresetUrl.value = '';
+  D.addPresetFormWrap.classList.add('hidden');
+
+  showToast(`✅ Preset "${name}" berhasil ditambahkan!`);
+}
+
+function deleteSelectedPreset() {
+  if (!D.m3uPresetSelect) return;
+  const url = D.m3uPresetSelect.value;
+  if (!url) return;
+
+  // Temukan elemen option untuk opsi terpilih
+  const selectedOpt = D.m3uPresetSelect.options[D.m3uPresetSelect.selectedIndex];
+  if (!selectedOpt || selectedOpt.getAttribute('data-custom') !== 'true') return;
+
+  let presets = [];
+  try {
+    const data = localStorage.getItem('jftv_custom_presets');
+    if (data) presets = JSON.parse(data);
+  } catch(e) {}
+
+  presets = presets.filter(p => p.url !== url);
+
+  try {
+    localStorage.setItem('jftv_custom_presets', JSON.stringify(presets));
+  } catch(e) {}
+
+  loadCustomPresets();
+  D.m3uPresetSelect.value = '';
+  D.deletePresetBtn.classList.add('hidden');
+
+  showToast('🧹 Preset kustom berhasil dihapus.');
+}
+
+// ════════════════════════════════════════════
 // FAVORITES
 // ════════════════════════════════════════════
 function toggleFav(ch, btn) {
@@ -2116,11 +2222,28 @@ function setupEvents() {
       D.m3uUrlInput.value = val;
       loadCustomM3UUrl(val);
     }
+    const selectedOpt = D.m3uPresetSelect.options[D.m3uPresetSelect.selectedIndex];
+    const isCustom = selectedOpt && selectedOpt.getAttribute('data-custom') === 'true';
+    D.deletePresetBtn?.classList.toggle('hidden', !isCustom);
   });
   D.m3uFileInput?.addEventListener('change', e => {
     if (e.target.files.length) loadCustomM3UFile(e.target.files[0]);
   });
   D.clearCustomPlaylistBtn?.addEventListener('click', clearCustomPlaylist);
+
+  D.addPresetToggle?.addEventListener('click', () => {
+    D.addPresetFormWrap.classList.toggle('hidden');
+    if (!D.addPresetFormWrap.classList.contains('hidden')) {
+      D.newPresetName.focus();
+    }
+  });
+  D.cancelNewPresetBtn?.addEventListener('click', () => {
+    D.newPresetName.value = '';
+    D.newPresetUrl.value = '';
+    D.addPresetFormWrap.classList.add('hidden');
+  });
+  D.saveNewPresetBtn?.addEventListener('click', saveNewPreset);
+  D.deletePresetBtn?.addEventListener('click', deleteSelectedPreset);
 
   // History events
   D.clearHistoryBtn?.addEventListener('click', clearHistory);
@@ -2268,6 +2391,7 @@ function handlePwaInstall() {
 document.addEventListener('DOMContentLoaded', () => {
   initDOM();
   setupEvents();
+  loadCustomPresets();
 
   // Register Service Worker for PWA
   if ('serviceWorker' in navigator) {

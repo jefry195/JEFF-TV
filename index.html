@@ -190,6 +190,30 @@
             <option value="https://iptv-org.github.io/iptv/countries/id.m3u">🇮🇩 Official ID (iptv-org)</option>
             <option value="https://raw.githubusercontent.com/dhasap/dhanytv/main/dhanytv.m3u">🌎 DhanyTV Global & Indo</option>
           </select>
+          <div class="preset-manage-row" style="display: flex; gap: 6px; align-items: center; margin-top: 6px;">
+            <button id="add-preset-toggle" class="btn-ghost" style="font-size: 11px; flex-grow: 1; text-align: left; padding: 5px 8px;">
+              ➕ Tambah Preset Baru
+            </button>
+            <button id="delete-preset-btn" class="btn-ghost danger-ghost hidden" style="font-size: 11px; padding: 5px 8px;" title="Hapus preset kustom terpilih">
+              🗑️ Hapus
+            </button>
+          </div>
+          
+          <!-- Add Preset Form (hidden by default) -->
+          <div id="add-preset-form-wrap" class="add-preset-form hidden" style="margin-top: 10px; background: var(--bg2); padding: 10px; border-radius: var(--r-sm); border: 1px dashed var(--border);">
+            <div class="input-group" style="margin-bottom: 8px;">
+              <label class="input-lbl" style="font-size: 11px; margin-bottom: 4px;">Nama Preset (misal: TV Ku)</label>
+              <input type="text" id="new-preset-name" placeholder="Nama playlist..." style="font-size:12px; padding: 6px 10px; width: 100%;" />
+            </div>
+            <div class="input-group" style="margin-bottom: 10px;">
+              <label class="input-lbl" style="font-size: 11px; margin-bottom: 4px;">URL Raw M3U (GitHub / Lainnya)</label>
+              <input type="text" id="new-preset-url" placeholder="https://raw.githubusercontent.com/..." style="font-size:12px; padding: 6px 10px; width: 100%;" />
+            </div>
+            <div style="display: flex; gap: 6px; justify-content: flex-end;">
+              <button id="cancel-new-preset-btn" class="btn-ghost" style="padding: 4px 10px; font-size:11px; height:auto;">Batal</button>
+              <button id="save-new-preset-btn" class="btn-primary-sm" style="padding: 4px 10px; font-size:11px; height:auto;">Simpan</button>
+            </div>
+          </div>
         </div>
         <div class="divider-text"><span>ATAU MASUKKAN URL</span></div>
         <div class="input-group">
