@@ -18,7 +18,7 @@
 // ════════════════════════════════════════════
 const CFG = {
   // App/Cache version for cache busting
-  CACHE_VERSION:    'v3.7',
+  CACHE_VERSION:    'v3.8',
   // iptv-org playlist base URLs (from PLAYLISTS.md)
   PLAYLIST_BASE:    'https://iptv-org.github.io/iptv',
   // API endpoints
@@ -1990,7 +1990,8 @@ function setupEvents() {
       (S.currentCh.group || '').toLowerCase().includes('radio') ||
       (S.currentCh.category || '').toLowerCase().includes('radio')
     );
-    if (isRadio || (D.video.readyState >= 1 && D.video.videoWidth === 0)) {
+    // Hanya anggap audio-only jika media sudah ter-decode (readyState >= 3) dan videoWidth masih 0
+    if (isRadio || (D.video.readyState >= 3 && D.video.videoWidth === 0)) {
       showToast('📻 Saluran radio (hanya suara) tidak memiliki video untuk ditampilkan di PiP');
       return;
     }
@@ -2001,10 +2002,14 @@ function setupEvents() {
       } else if (!D.video.paused && D.video.readyState >= 2) {
         await D.video.requestPictureInPicture();
       } else {
-        showToast('⚠️ Putar channel dulu untuk PiP');
+        showToast('⏳ Memuat saluran... Tunggu sampai video muncul untuk mengaktifkan PiP');
       }
-    } catch(e) { 
-      showToast('⚠️ PiP tidak dapat diaktifkan pada saluran ini'); 
+    } catch(e) {
+      if (e.message && e.message.toLowerCase().includes('metadata')) {
+        showToast('⏳ Menghubungkan video... Silakan coba PiP kembali saat siaran sudah muncul');
+      } else {
+        showToast('⚠️ PiP tidak dapat diaktifkan pada saluran ini');
+      }
     }
   }
 
