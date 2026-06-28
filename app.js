@@ -18,7 +18,7 @@
 // ════════════════════════════════════════════
 const CFG = {
   // App/Cache version for cache busting
-  CACHE_VERSION:    'v3.9',
+  CACHE_VERSION:    'v4.0',
   // iptv-org playlist base URLs (from PLAYLISTS.md)
   PLAYLIST_BASE:    'https://iptv-org.github.io/iptv',
   // API endpoints
@@ -1489,6 +1489,17 @@ async function loadCategoryMode(slug) {
 // ════════════════════════════════════════════
 async function loadCustomM3UUrl(url) {
   if (!url) return;
+  
+  let targetUrl = url.trim();
+  
+  // Deteksi dan konversi otomatis jika user menyalin link viewer file GitHub (blob)
+  if (targetUrl.includes('github.com') && targetUrl.includes('/blob/')) {
+    targetUrl = targetUrl.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+    showToast('🔄 Mengonversi link GitHub ke versi Raw...');
+  } else if (targetUrl.includes('github.com') && !targetUrl.includes('raw.githubusercontent.com') && !targetUrl.endsWith('.m3u') && !targetUrl.endsWith('.m3u8')) {
+    showToast('⚠️ Masukkan link file .m3u spesifik (bukan halaman depan repo). Klik file M3U di Github, klik "Raw", lalu salin linknya.');
+  }
+
   S.country = '';
   S.category = '';
   D.skeleton.classList.remove('hidden');
@@ -1497,7 +1508,7 @@ async function loadCustomM3UUrl(url) {
   showToast('🌐 Mengunduh playlist M3U kustom...');
 
   try {
-    const txt = await fetchText(url);
+    const txt = await fetchText(targetUrl);
     if (!txt.includes('#EXTINF')) throw new Error('Format M3U tidak valid');
     const chs = parseM3U(txt);
     if (chs.length === 0) throw new Error('Tidak ada saluran ditemukan');
@@ -1608,11 +1619,16 @@ function loadCustomPresets() {
 
 function saveNewPreset() {
   const name = D.newPresetName.value.trim();
-  const url = D.newPresetUrl.value.trim();
+  let url = D.newPresetUrl.value.trim();
 
   if (!name || !url) {
     showToast('⚠️ Nama dan URL preset wajib diisi!');
     return;
+  }
+
+  // Konversi otomatis jika user memasukkan link viewer file GitHub (blob)
+  if (url.includes('github.com') && url.includes('/blob/')) {
+    url = url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
   }
 
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
